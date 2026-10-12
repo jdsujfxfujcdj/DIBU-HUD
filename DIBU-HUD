@@ -1,0 +1,83 @@
+-- [[ CORE SCRIPT ENGINE ]] --
+local Config = getgenv().DIBUConfig
+if not Config or not Config.AutoFarm then return end
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Notification System
+local function Notify(title, text)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = 5
+        })
+    end)
+end
+
+Notify("DIBU Hub", "Script Loaded Successfully! Current Mode: " .. tostring(Config.JobMode))
+
+-- 1. Anti-Ragdoll / Anti-Kill System
+task.spawn(function()
+    while task.wait(1) do
+        if not Config.AutoFarm then break end
+        
+        local char = LocalPlayer.Character
+        if char then
+            -- Anti Ragdoll
+            if Config.AntiRagdoll and char:FindFirstChild("Ragdoll") then
+                char.Ragdoll:Destroy()
+            end
+            
+            -- Auto Respawn Check
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if Config.AutoRespawn and humanoid and humanoid.Health <= 0 then
+                LocalPlayer:LoadCharacter()
+            end
+        end
+    end
+end)
+
+-- 2. Job Manager Loop
+task.spawn(function()
+    while task.wait(1) do
+        if not Config.AutoFarm then break end
+
+        local mode = Config.JobMode
+        
+        if mode == "fishing" then
+            print("[Auto Farm] Working: Fishing (Preset: " .. tostring(Config.FishPreset) .. ")")
+            task.wait(Config.FishWaitTime or 1)
+
+        elseif mode == "atm_swiper" then
+            print("[Auto Farm] Working: ATM Swiper")
+            task.wait(2)
+
+        elseif mode == "stocker" then
+            print("[Auto Farm] Working: Stocker (" .. tostring(Config.BoxType) .. ")")
+            task.wait(2)
+
+        elseif mode == "janitor" then
+            print("[Auto Farm] Working: Janitor (Target: " .. tostring(Config.PuddleTarget) .. ")")
+            task.wait(1.5)
+
+        elseif mode == "cooking" then
+            print("[Auto Farm] Working: Cooking")
+            task.wait(2)
+        end
+    end
+end)
+
+-- 3. Auto Server Hop System
+if Config.AutoHop and Config.AutoHopInterval > 0 then
+    task.spawn(function()
+        task.wait(Config.AutoHopInterval * 60)
+        Notify("Server Hop", "Searching for a new server...")
+        
+        if #Players:GetPlayers() <= Config.HopTargetMaxPlayers or Config.AutoLowServerHop then
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end
+    end)
+end
